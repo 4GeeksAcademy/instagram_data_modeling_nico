@@ -1,42 +1,57 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Enum
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import create_engine
 from eralchemy2 import render_er
 
 Base = declarative_base()
 
-class Follower(Base):
-    __tablename__ = 'follower'
-    user_from_id = Column(Integer, ForeignKey('user.id'))
-    user_to_id = Column(Integer, ForeignKey('user.id'))
+Followers = Table(
+    'followers',
+    Base.metadata,
+    Column('follower_id', Integer, ForeignKey('user.id'), primary_key=True),
+    Column('following_id', Integer, ForeignKey('user.id'), primary_key=True)
+)
 
 class User(Base):
     __tablename__ = 'user'
-    id = Column(Integer, primary_key=True)
-    username = Column(String(250))
-    firstname = Column(String(250))
-    lastname = Column(String(250))
-    email = Column(String(250))
+    ID = Column(Integer, primary_key=True)
+    user_name = Column(String(250), nullable=False)
+    first_name = Column(String(250), nullable=False)
+    last_name = Column(String(250), nullable=False)
+    email = Column(String(250), nullable=False)
+    post = relationship('Post', backref='user', lazy=True)
+    comment = relationship('Comment', backref='user', lazy=True)
+    followed = relationship(
+        'User',
+        secondary = Followers,
+        primaryjoin = (Followers.c.following_id == id),
+        secondaryjoin = (Followers.c.follower_id == id),
+        backref = "following",
+        lazy = True
+    )
     
-
 class Media(Base):
-    id = Column(Integer, primary_key=True)
-    type = enumerate("photo", "video", "reel")
-    url = Column(String(250))
+    __tablename__='media'
+    ID = Column(Integer, primary_key=True)
+    type = Column(Enum('photo', 'video', 'reel'), nullable=False)
+    url = Column(String(250), nullable=False)
     post_id = Column(Integer, ForeignKey('post.id'))
 
 class Post(Base):
-    id = Column(Integer, ForeignKey('comment.post_id'), primary_key=True)
+    __tablename__='post'
+    ID = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('user.id'))
+    comment = relationship('Comment', backref='post', lazy=True)
     user_id = Column(Integer, ForeignKey('user.id'))
 
 class Comment(Base):
-    id = Column(Integer, primary_key=True)
-    comment_text = Column(String(250))
-    author_id = Column(Integer, ForeignKey('user.id'))
-    post_id = Column(Integer)
-
+    __tablename__='Comment'
+    ID = Column(Integer, primary_key=True)
+    comment_text = Column(String(250), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id')),
+    post_id = Column(Integer, ForeignKey('post.id'))
 
 
 # class Person(Base):
